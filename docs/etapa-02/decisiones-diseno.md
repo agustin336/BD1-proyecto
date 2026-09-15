@@ -95,8 +95,8 @@ Así quedaron definidas las relaciones entre entidades, con sus cardinalidades:
    Cada componente pertenece a un armado específico, así que la cardinalidad es M del lado de `Computadora` y 1 del lado del componente en todos los casos:
    * `Gabinete` (`Posee`)
    * `Placa_Video` (`Posee`)
-   * `Almacenamiento` (`Tiene`)
-   * `Fuente_Poder` (`Tiene`)
+   * `Almacenamiento` (`Posee`)
+   * `Fuente_Poder` (`Posee`)
    * `RAM` (`Tiene`)
    * `Placa_Madre` (`Posee`)
    * `Procesador` (`Posee`)
