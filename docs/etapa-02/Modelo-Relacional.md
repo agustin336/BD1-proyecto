@@ -132,8 +132,6 @@ Refrigeracion VARCHAR(30) NOT NULL,
 
 Stock INT NOT NULL,
 
-Precio FLOAT NOT NULL,
-
 ID\_Gabinete INT NOT NULL,
 
 ID\_Placa\_Video INT NOT NULL,
