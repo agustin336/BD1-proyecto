@@ -1,4 +1,4 @@
-# Decisiones de Diseño — Diagrama Entidad-Relación (DER)
+# Decisiones de Diseño — Diagrama Entidad-Relación (DER) y Modelo Relacional (3FN)
 
 **Asignatura:** Bases de Datos I — FaCENA (UNNE)  
 **Equipo:** 20
@@ -110,4 +110,66 @@ Así quedaron definidas las relaciones entre entidades, con sus cardinalidades:
 * **Por qué separamos los componentes de hardware en entidades propias:** en vez de cargar `Computadora` con un montón de atributos según cada pieza (procesador, RAM, placa de video, etc.), preferimos que cada componente tenga su propia entidad. Esto nos permite describir cada uno con sus características técnicas reales y evita que `Computadora` termine con atributos multivaluados.
 
 * **Sobre los atributos opcionales de `Computadora`:** marcamos `Taza_Refresco`, `Marca` y `Nombre` como opcionales porque no todos los equipos los necesitan de la misma manera. Una PC armada a medida, por ejemplo, no siempre tiene una marca comercial asociada, mientras que una notebook o un All in One sí necesita el dato de la pantalla integrada.
+
+---
+
+## 5. Pasaje del DER al Modelo Relacional
+
+En esta parte explicamos cómo convertimos el diagrama entidad-relación en el conjunto de tablas relacionales que definimos en el archivo de diseño, aplicando las reglas de transformación:
+
+* **Conversión de entidades a tablas:**  
+  Cada una de las entidades del DER pasó a ser una tabla independiente en el modelo relacional. A cada una le asignamos una clave primaria (`ID_*`) para identificar a cada registro de manera unívoca.
+
+* **Mapeo de relaciones 1 a N mediante claves foráneas (FK):**  
+  Todas las relaciones de nuestro modelo son del tipo uno a muchos (1 a M). Por regla de transformación, la clave primaria de la entidad que está del lado "1" viaja como clave foránea a la tabla que está del lado "M":
+  * **`Cliente` — `Cabecera_Venta`:** agregamos `ID_Cliente` en `Cabecera_Venta`.
+  * **`Tipo_Pago` — `Cabecera_Venta`:** agregamos `ID_Tipo_Pago` en `Cabecera_Venta`.
+  * **`Usuario` — `Cabecera_Venta`:** agregamos `ID_Usuario` en `Cabecera_Venta`.
+  * **`Tipo_Usuario` — `Usuario`:** agregamos `ID_Tipo_Usuario` en `Usuario`.
+  * **`Cabecera_Venta` — `Detalle_Venta`:** agregamos `ID_Cabecera_venta` en `Detalle_Venta`.
+  * **`Computadora` — `Detalle_Venta`:** agregamos `ID_Computadora` en `Detalle_Venta`.
+  * **Componentes — `Computadora`:** como la cardinalidad es 1 a M desde los componentes hacia `Computadora`, trasladamos los IDs de cada una de las 7 piezas como claves foráneas dentro de `Computadora` (`ID_Gabinete`, `ID_Placa_Video`, `ID_Almacenamiento`, `ID_RAM`, `ID_Fuente_Poder`, `ID_Procesador` e `ID_Placa_Madre`).
+
+* **Ajustes de nombres y atributos:**  
+  * En el DER habíamos llamado a la entidad `Cabecera_Factura`, mientras que en el modelo relacional pasó a llamarse `Cabecera_Venta` (y su clave `ID_Cabecera_Venta`), unificando el término con `Detalle_Venta`.
+  * En la tabla `Computadora` sumamos el atributo `Precio`, indispensable para poder calcular los importes y subtotales en las líneas de venta.
+
+---
+
+## 6. Justificación de la Normalización (1FN, 2FN y 3FN)
+
+El diseño relacional resultante cumple de manera directa con las tres primeras formas normales:
+
+* **Primera Forma Normal (1FN):**  
+  * Todos los atributos almacenan valores atómicos (indivisibles). No usamos listas, arreglos ni textos compuestos dentro de una sola celda.
+  * No existen grupos repetitivos. Los componentes de hardware no se agregaron como columnas reiteradas dentro de `Computadora`, sino como tablas separadas. Del mismo modo, los distintos ítems de una compra no están en `Cabecera_Venta`, sino que cada uno ocupa un registro individual en `Detalle_Venta`.
+  * Todas las tablas cuentan con una clave primaria definida que identifica cada fila.
+
+* **Segunda Forma Normal (2FN):**  
+  * Cumple con la 1FN.
+  * Exige que todos los atributos que no forman parte de la clave dependan por completo de la clave primaria, eliminando dependencias parciales.
+  * En nuestro modelo, todas las tablas tienen claves primarias simples de una sola columna (`ID_*`), incluida `Detalle_Venta`. Al no tener claves compuestas en ninguna tabla, no existe la posibilidad de que un atributo dependa de solo una parte de la clave, por lo que la 2FN se satisface automáticamente en todo el esquema.
+
+* **Tercera Forma Normal (3FN):**  
+  * Cumple con la 2FN.
+  * Exige que no existan dependencias transitivas, es decir, que ningún atributo no clave dependa funcionalmente de otro atributo no clave.
+  * Esto se garantiza mediante la separación de conceptos que aplicamos:
+    * **Roles de usuario:** los roles están en `Tipo_Usuario`. Si hubiéramos dejado el nombre del rol dentro de `Usuario`, ese dato dependería del tipo de usuario y no directamente del usuario (`ID_Usuario -> ID_Tipo_Usuario -> Nombre/Rol`).
+    * **Tipos de pago:** están en `Tipo_Pago`. Dejar la descripción del medio de pago en `Cabecera_Venta` generaría redundancia y dependencia transitiva.
+    * **Datos del cliente:** en `Cabecera_Venta` solo se almacena `ID_Cliente`. La información personal (`Nombre`, `Apellido`, `DNI`, `Email`, `Telefono_Contacto`) vive exclusivamente en `Cliente`.
+    * **Detalles técnicos de componentes:** las características de hardware (como frecuencia, núcleos, tamaño o velocidad) se mantienen en sus tablas específicas y no dentro de `Computadora`, evitando que dependan transitivamente del ID del equipo.
+
+---
+
+## 7. Justificación de Decisiones del Modelo Relacional
+
+* **Por qué usamos claves subrogadas (`ID`) en lugar de claves naturales:**  
+  Tanto en `Cliente` como en `Usuario` existen atributos naturales candidatos a clave, como `DNI`, `Email` y el nombre de `User`. Elegimos usar identificadores numéricos artificiales (`ID`) como clave primaria para simplificar las relaciones con claves foráneas y optimizar los índices de búsqueda. Además, esto evita problemas si un cliente modifica su correo electrónico o si hay que corregir un número de documento mal cargado. Para garantizar que esos datos no se dupliquen en el sistema, les aplicamos la restricción de unicidad (`UNIQUE`).
+
+* **Por qué `Detalle_Venta` tiene su propia clave primaria (`ID_Detalle_Venta`):**  
+  En vez de usar una clave compuesta formada por `(ID_Cabecera_Venta, ID_Computadora)`, preferimos asignarle un ID propio a cada fila de detalle. Esto simplifica las consultas y las claves foráneas, y además permite registrar más de una vez el mismo equipo en una venta si fuera necesario (por ejemplo, si se vende con condiciones, promociones o garantías diferentes).
+
+* **Manejo de valores nulos en `Computadora`:**  
+  Los atributos `Nombre`, `Marca` y `Taza_Refresco` se configuraron para aceptar valores nulos (`NULL`). Esto responde a la variedad de equipos que maneja la tienda: una PC de escritorio armada a medida no suele tener marca comercial ni pantalla integrada, mientras que una notebook o una All in One sí cuenta con esos datos. El resto de los atributos técnicos y las 7 claves foráneas a los componentes son obligatorios (`NOT NULL`).
+
 
