@@ -82,6 +82,8 @@ Frecuencia\_W SMALLINT NOT NULL,
 
 RGB VARCHAR(30) NOT NULL,
 
+Marca VARCHAR(100) NOT NULL,
+
 PRIMARY KEY (ID\_Fuente\_Poder)
 
 )
